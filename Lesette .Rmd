@@ -59,7 +59,7 @@ data("wildebeest")
 View(wildebeest)
 ```
 
-Justification for priors: 
+1. Prior Specification: 
   uniform lets u cut off at the values at 0 for other priors 
-beta_0 and beta_1 can be negative so normal with a wide enough range is appropriate 
+  beta_0 and beta_1 can be negative so normal with a wide enough range is appropriate 
 
