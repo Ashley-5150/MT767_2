@@ -1,0 +1,65 @@
+---
+title: "Lesette"
+author: "Lesette Campbell"
+date: "11/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Wet seasons of October - April 
+- easily countable 
+
+rainfall during the dry season (july -oct) is recorded 
+- prior to sampling 
+- it affects the 
+- determinant of dry season survival 
+
+Assumes: 
+  pop growth r_t*N_t-1
+term for removals
+no carrying capacity 
+
+Iniital pop size unknown 
+
+growth rate r varies over time which we relate to rainfall 
+
+t are calendar years 
+
+model growtth rate from t -1 to t 
+
+State-space model for the wildebeest pop and observed is as follow 
+
+N_t | N_t-1 ~ normal(r_t*N_t-1 - C_t-1, simga2_N)
+
+annual growth rate  is modelled a log linear fn of rainfall: 
+  
+  log(r_t) = \beta_r) + \beta_r1 * rain_t
+
+observation model where observations are assumed to be normally distributed condiontal random variables: 
+  
+  yhat_t|N_t ~ normal(N_t, simga2_y_t)
+
+
+Priors: 
+  N1 ~ dunif(0, 2)                 # Initial population size             
+sigma_N ~ dunif(0, 0.5)          # Initial standard deviation for N 
+sigma_obs ~ dunif(0, 1)          # Initial standard deviation for Observation   
+sigma2_N <- pow(sigma_N, 2)       # Translating it into variation (sd^2)
+sigma2_obs <- pow(sigma_obs, 2)   # Translating it into variation (sd^2)
+tau_N <- pow(sigma_N, -2)         # Translate to precision (sd^-2)
+tau_obs <- pow(sigma_obs, -2)     # Translate to precision (sd^-2)
+beta_0 ~ dnorm(0, 0.01)          # Setting initial beta_0
+beta_1 ~ dnorm(0, 0.01)          # Setting initial beta_1
+
+```{r}
+library(statsecol)
+data("wildebeest")
+View(wildebeest)
+```
+
+Justification for priors: 
+  uniform lets u cut off at the values at 0 for other priors 
+beta_0 and beta_1 can be negative so normal with a wide enough range is appropriate 
+
