@@ -43,7 +43,7 @@ observation model where observations are assumed to be normally distributed cond
 
 
 Priors: 
-  N1 ~ dunif(0, 2)                 # Initial population size             
+N1 ~ dunif(0, 2)                 # Initial population size             
 sigma_N ~ dunif(0, 0.5)          # Initial standard deviation for N 
 sigma_obs ~ dunif(0, 1)          # Initial standard deviation for Observation   
 sigma2_N <- pow(sigma_N, 2)       # Translating it into variation (sd^2)
