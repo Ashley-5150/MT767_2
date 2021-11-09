@@ -44,7 +44,7 @@ observation model where observations are assumed to be normally distributed cond
 
 Priors: 
 N1 ~ dunif(0, 2)                 # Initial population size             
-sigma_N ~ dunif(0, 0.5)          # Initial standard deviation for N 
+sigma_N ~ dunif(0, 1)            # Initial standard deviation for N 
 sigma_obs ~ dunif(0, 1)          # Initial standard deviation for Observation   
 sigma2_N <- pow(sigma_N, 2)       # Translating it into variation (sd^2)
 sigma2_obs <- pow(sigma_obs, 2)   # Translating it into variation (sd^2)
@@ -60,6 +60,15 @@ View(wildebeest)
 ```
 
 1. Prior Specification: 
-  uniform lets u cut off at the values at 0 for other priors 
-  beta_0 and beta_1 can be negative so normal with a wide enough range is appropriate 
+ 
+The priors that require specification in our model include the following: 
+- the population size for the wildebeest in the first year(1960) $N_1$
+- the variation for our state model and observation model which can be found by stochastically defining the standard deviation and transforming it by a power of 2
+- the intercept $\beta_{r_0}$ and  slope $\beta_{r_1}$ of growth as a function of rainfall in the log-linear function $log(r_t) = \beta_{r_0} + \beta_{r_1} * Rain_t$. 
+
+
+A diffuse prior for the initial population size, and the standard deviations for the state/observation model are defined with a uniform distribution contain a wide range of positive values. A negative population size or standard deviation is unrealistic, and a uniform distribution provides us the capability of specifying non-negative parameter values. The upper range limit for each distribution is based upon picking a value that is substantially greater than the largest known value of that parameter in the data. 
+The prior for initial population size is defined as a uniform ~ (0,2), with the largest known being $Nhat = 1.686$. The standard deviation for state model and the observation model is defined as uniform distribution from (0, 1), where the largest known value of $sehat = 0.355$. 
+
+The diffuse priors for \beta_{r_0} and \beta_{r_1} is defined as a normal distribution from (0, 100). Defining the $\beta$'s as a normal distribution allows for them to take on negative or positive values. This is appropriate in the case of rainfall because we are unsure if rainfall is has a negative or positive impact on the population growth. 
 
