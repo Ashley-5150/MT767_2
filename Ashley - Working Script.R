@@ -6,7 +6,7 @@ data("wildebeest")
 #N1 ~ Unif(0, 2)
 
 
-
+set.seed(5150)
 
 
 
