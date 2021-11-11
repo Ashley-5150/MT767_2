@@ -72,3 +72,84 @@ The prior for initial population size is defined as a uniform ~ (0,2), with the 
 
 The diffuse priors for \beta_{r_0} and \beta_{r_1} is defined as a normal distribution from (0, 100). Defining the $\beta$'s as a normal distribution allows for them to take on negative or positive values. This is appropriate in the case of rainfall because we are unsure if rainfall is has a negative or positive impact on the population growth. 
 
+
+```{r}
+library(statsecol)
+library(jagsUI)
+library(ggplot2)
+library(zoo)
+data("wildebeest")
+
+set.seed(5150)
+
+nyrs <- 30
+
+sink("MT5767_2.txt")
+cat("
+model{
+  #Priors  and constraints: 
+  N1 ~ dunif(0, 2)                   # Initial population size  
+  N.est[1] <- N1              
+  sig.N ~ dunif(0, 1)                # Initial standard deviation for N 
+  sig2.N <- pow(sig.N, 2)            # Translating it into variation (sd^2)
+  tau.N <- pow(sig.N, -2)            # Translate to precision (sd^-2)
+  beta.0 ~ dnorm(0, 0.01)            # Setting initial beta.0
+  beta.1 ~ dnorm(0, 0.01)            # Setting initial beta.1
+
+  # Likelihood - State process
+  for (t in 1:(nyrs-1)){
+  log.r[t] <- beta.0 + beta.1 * rain[t]
+    log(r[t]) <- log.r[t]
+    N.est[t+1] <- r[t] * N.est[t]            #add removal 
+  }
+   # Likelihood - Observation process
+  for(t in obs.pos){
+  y[t] ~ dnorm(N.est[t], pow(sig.y[t], -2))
+  }
+}
+",fill = TRUE)
+sink()
+
+obs.pos <- c(2, 4, 6, 8, 12, 13, 18, 19, 23, 25, 27, 30)
+
+wildebeest.data <- list(nyrs = nyrs, 
+                        y = wildebeest$Nhat, 
+                        rain = wildebeest$rain, 
+                        obs.pos = obs.pos,
+                        sig.y = wildebeest$sehat)
+
+N.filled <- na.locf(wildebeest$Nhat)
+
+
+wildebeest.inits <- function(){
+  list(
+    N1 = runif(1, 0, 2),
+    N.est = N.filled,
+    sig.N = runif(1, 0, 1),
+    beta.0 = runif(1, -2, 2),
+    beta.1 = runif(1, -2, 2)
+  )
+}
+
+wildebeest.parms <- c("beta.0", "beta.1", "sig.N", "N1", "sig.y")
+
+nc <- 5
+nb <- 1000
+ni <- 10000 + nb
+nt <- 1
+
+wildebeest.out <- jags(data = wildebeest.data,
+                       inits = wildebeest.inits,
+                       parameters.to.save = wildebeest.parms,
+                       model.file = "MT5767_2.txt",
+                       n.chains = nc,
+                       n.iter = ni,
+                       n.burnin = nb,
+                       n.thin = nt)
+
+library(MCMCvis)
+MCMCtrace(wildebeest.out, params = wildebeest.parms[1:5], type = "trace", iter = ni, pdf = FALSE)
+
+
+```
+
