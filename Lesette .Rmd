@@ -100,7 +100,7 @@ model{
   for (t in 1:(nyrs-1)){
   log.r[t] <- beta.0 + beta.1 * rain[t]
     log(r[t]) <- log.r[t]
-    N.est[t+1] <- r[t] * N.est[t]            #add removal 
+    N.est[t+1] <- r[t] * N.est[t]           #add removal 
   }
    # Likelihood - Observation process
   for(t in obs.pos){
@@ -123,7 +123,6 @@ N.filled <- na.locf(wildebeest$Nhat)
 
 wildebeest.inits <- function(){
   list(
-    N1 = runif(1, 0, 2),
     N.est = N.filled,
     sig.N = runif(1, 0, 1),
     beta.0 = runif(1, -2, 2),
