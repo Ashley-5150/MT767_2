@@ -1,0 +1,28 @@
+
+model{
+  # Priors and constraints
+  N1 ~ dunif(0, 2)                 # Initial population size  
+  N.est[1] <- N1
+  sig.N ~ dunif(0, 1)            # Initial standard deviation for N
+  tau.N <- pow(sig.N, -2)
+  beta.0 ~ dnorm(0, 0.01)          # Setting initial Beta0
+  beta.1 ~ dnorm(0, 0.01)          # Setting initial Beta1
+  
+  for (i in c(2, 4, 6, 8, 12, 13, 18, 19, 23, 25, 27, 30)) {
+    sig.y[i] ~ dunif(0, 1)
+    tau.y[i] <- pow(sig.y[i], -2)
+  }
+  
+  # Likelihood - State process
+  for (t in 1:(nyrs-1)){
+    log.r[t] <- beta.0 + beta.1 * rain[t]
+    log(r[t]) <- log.r[t]
+    N.est[t+1] <- r[t] * N.est[t]
+  }
+  
+  # Likelihood - Observation process
+  for(t in c(2, 4, 6, 8, 12, 13, 18, 19, 23, 25, 27, 30)){
+    y[t] ~ dnorm(N.est[t], tau.y[t])
+  }
+}
+
