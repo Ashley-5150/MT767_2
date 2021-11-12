@@ -13,7 +13,7 @@ model{
   for (t in 1:(nyrs-1)){
   log.r[t] <- beta.0 + beta.1 * rain[t]
     log(r[t]) <- log.r[t]
-    N.est[t+1] <- r[t] * N.est[t]            #add removal 
+    N.est[t+1] ~ dnorm(((r[t] * N.est[t]) - catch[t]), tau.N)
   }
    # Likelihood - Observation process
   for(t in obs.pos){

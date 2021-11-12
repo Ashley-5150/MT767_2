@@ -59,19 +59,61 @@ data("wildebeest")
 View(wildebeest)
 ```
 
-1. Prior Specification: 
+#1. Prior Specification: 
  
 The priors that require specification in our model include the following: 
 - the population size for the wildebeest in the first year(1960) $N_1$
-- the variation for our state model and observation model which can be found by stochastically defining the standard deviation and transforming it by a power of 2
+- the variation for our state model and observation model which can be found by stochastically defining the standard deviation and transforming it by a power of 2. Because of the nature in which the observation model is defined, the observation model produces a standard deviation for each observation.
 - the intercept $\beta_{r_0}$ and  slope $\beta_{r_1}$ of growth as a function of rainfall in the log-linear function $log(r_t) = \beta_{r_0} + \beta_{r_1} * Rain_t$. 
 
 
 A diffuse prior for the initial population size, and the standard deviations for the state/observation model are defined with a uniform distribution contain a wide range of positive values. A negative population size or standard deviation is unrealistic, and a uniform distribution provides us the capability of specifying non-negative parameter values. The upper range limit for each distribution is based upon picking a value that is substantially greater than the largest known value of that parameter in the data. 
-The prior for initial population size is defined as a uniform ~ (0,2), with the largest known being $Nhat = 1.686$. The standard deviation for state model and the observation model is defined as uniform distribution from (0, 1), where the largest known value of $sehat = 0.355$. 
+The prior for initial population size is defined as a uniform distribution with a minimum value of zero (0) and maximum value of two (2). The maximum value of two is chosen based on the largest known value for $Nhat = 1.686$ in the data. The standard deviation for state model and the observation model is defined as uniform distribution with a minimum value of zero (0) and maximum value of one (1). The maximum value of one is chosen based off the largest known value of $sehat = 0.355$. 
 
-The diffuse priors for \beta_{r_0} and \beta_{r_1} is defined as a normal distribution from (0, 100). Defining the $\beta$'s as a normal distribution allows for them to take on negative or positive values. This is appropriate in the case of rainfall because we are unsure if rainfall is has a negative or positive impact on the population growth. 
+The diffuse priors for \beta_{r_0} and \beta_{r_1} are defined as a normal distribution with a mean of zero (0) and a standard deviation of 100. Defining the $\beta$'s as a normal distribution allows for them to take on negative or positive values. This is appropriate in the case of rainfall because we are unsure if rainfall is has a negative or positive impact on the population growth. Because we are using a log link function for growth rate, this allows us to specify priors in this way as even negative estimates for \beta_{r_0} and \beta_{r_1} would still a non negative growth rate.
 
+#2. BUGS Model Description
+
+The model written in BUGS is the corresponding state space model for the wildebeest population dynamics. In the model, we start by defining the diffuse priors based on the prior specification established in part 1. Next, we defined the state process to loop over time for 30 years. For the state process of our model, we first defined the annual growth rate of wildebeest modelled as log-linear function of rainfall. Than transform the $log(r_t)$ by $exp(log(r_t)$ to obtain the growth rate used in the Markovian process model $N_t|N_{t-1}  \backsim normal(r_tN_{t-1} - C_{t-1}, \sigma^2_N$ defined next. Lastly, we defined the observation process looped over only known observations, this is done since our data contains NA observations. The BUGS Model is explicitly written as so: 
+```{r}
+sink("MT5767_2.txt")
+cat("
+model{
+  #Priors and constraints: 
+  N1 ~ dunif(0, 2)                   # Initial population size  
+  N.est[1] <- N1              
+  sig.N ~ dunif(0, 1)                # Initial standard deviation for N 
+  sig2.N <- pow(sig.N, 2)            # Translating it into variation (sd^2)
+  tau.N <- pow(sig.N, -2)            # Translate to precision (sd^-2)
+  beta.0 ~ dnorm(0, 0.01)            # Setting initial beta.0
+  beta.1 ~ dnorm(0, 0.01)            # Setting initial beta.1
+
+  # Likelihood - State process
+  for (t in 1:(nyrs-1)){
+  log.r[t] <- beta.0 + beta.1 * rain[t]
+    log(r[t]) <- log.r[t]
+    N.est[t+1] ~ dnorm(((r[t] * N.est[t]) - catch[t]), tau.N)
+  }
+   # Likelihood - Observation process
+  for(t in obs.pos){
+  y[t] ~ dnorm(N.est[t], pow(sig.y[t], -2))
+  }
+}
+",fill = TRUE)
+sink()
+```
+
+
+3. Model fitting and interpretation
+
+
+4. Projecting population dynamics
+In order to refit the model 
+
+5. Posterior inference: Using the model with projections discuss the following:
+- provide evidence that the model has (or has not) converged?
+- create a table to report the parameter estimates and associated uncertainty
+- plot the fitted population trajectories and 95% Bayesian Credible Intervals (including the projections) and add the observation data
 
 ```{r}
 library(statsecol)
@@ -100,7 +142,7 @@ model{
   for (t in 1:(nyrs-1)){
   log.r[t] <- beta.0 + beta.1 * rain[t]
     log(r[t]) <- log.r[t]
-    N.est[t+1] <- r[t] * N.est[t]           #add removal 
+    N.est[t+1] ~ dnorm(((r[t] * N.est[t]) - catch[t]), tau.N)
   }
    # Likelihood - Observation process
   for(t in obs.pos){
@@ -112,27 +154,30 @@ sink()
 
 obs.pos <- c(2, 4, 6, 8, 12, 13, 18, 19, 23, 25, 27, 30)
 
+N.filled <- c(NA,na.locf(wildebeest$Nhat))
+
 wildebeest.data <- list(nyrs = nyrs, 
                         y = wildebeest$Nhat, 
+                        N.est = N.filled,
                         rain = wildebeest$rain, 
-                        obs.pos = obs.pos,
+                        catch = wildebeest$Catch,
+                        obs.pos = obs.pos, 
                         sig.y = wildebeest$sehat)
 
-N.filled <- na.locf(wildebeest$Nhat)
 
 
 wildebeest.inits <- function(){
   list(
-    N.est = N.filled,
+    N1 = runif(1, 0, 2),
     sig.N = runif(1, 0, 1),
     beta.0 = runif(1, -2, 2),
     beta.1 = runif(1, -2, 2)
   )
 }
 
-wildebeest.parms <- c("beta.0", "beta.1", "sig.N", "N1", "sig.y")
+wildebeest.parms <- c("beta.0", "beta.1", "sig.N", "N1", "N.est", "sig.y")
 
-nc <- 5
+nc <- 6
 nb <- 1000
 ni <- 10000 + nb
 nt <- 1
@@ -147,8 +192,7 @@ wildebeest.out <- jags(data = wildebeest.data,
                        n.thin = nt)
 
 library(MCMCvis)
-MCMCtrace(wildebeest.out, params = wildebeest.parms[1:5], type = "trace", iter = ni, pdf = FALSE)
+MCMCtrace(wildebeest.out, params = wildebeest.parms[1:6], type = "trace", iter = ni, pdf = FALSE)
 
 
 ```
-
